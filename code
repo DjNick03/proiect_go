@@ -1,0 +1,64 @@
+//pachetul necesar pentru scrierea unui server HTTP
+package main
+
+import (
+	"fmt"
+	"net/http"
+)
+
+// verificareUtilizator - verifica daca datele de autentificare sunt corecte..
+func verificareUtilizator(user, pass string) bool {
+	utilizatori := []string{"alex:asd123", "nicu:333"}
+
+	for _, u := range utilizatori {
+		if user+":"+pass == u {
+			return true
+		}
+	}
+
+	return false
+}
+
+func hello(w http.ResponseWriter, r *http.Request) {
+
+	// BasicAuth returnează numele de utilizator și parola furnizate în antetul de autorizare a cererii,
+	// dacă cererea utilizează autentificarea de bază HTTP.
+	user, pass, ok := r.BasicAuth()
+	// verificam daca datele de autentificare sunt corecte, in caz contrar retrimitem antetul de autorizare...
+	if !ok || !verificareUtilizator(user, pass) {
+
+		// antet de autorizare
+		w.Header().Set("WWW-Authenticate", "Basic realm=\"My Realm\"")
+		w.WriteHeader(401)
+		fmt.Fprintln(w, `
+			<html>
+				<h1>Datele de autentificare incorecte!</h1> 
+				<h3>Pentru a accesa aceasta pagina te rog sa te autentifici</h3>
+			</html>
+			`)
+		return
+	}
+
+	// daca datele de autentificare sunt corecte
+	fmt.Fprintln(w, `
+		<!doctype html>
+		<html>
+		<body>
+		<h1>Salut!`+user+`</h1>
+		<h4>Continut pagina...</h4> 
+		</body>
+		</html>
+		`)
+
+}
+//functia main
+func main() {
+
+	http.HandleFunc("/", hello)
+
+	fmt.Println("Se executa programul pe portul 8080...")
+	err := http.ListenAndServe(":8080", nil)
+	if err != nil {
+		panic(err)
+	}
+}
